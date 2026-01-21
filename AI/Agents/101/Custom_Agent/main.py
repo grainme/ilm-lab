@@ -1,8 +1,13 @@
 import argparse
 import os
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
+from call_function import available_functions
+from prompts import system_prompt
+
 
 def main():
     load_dotenv()
@@ -17,20 +22,16 @@ def main():
 
     # "parts" argument is a list because Google Gemini API is multimodal,
     # which means a single message can contain multiple types of content at once.
-    #
-    # --
-    # example:
-    # types.Content(
-    #     role="user",
-    #     parts=[
-    #         types.Part(text="What's in this image?"),
-    #         types.Part(inline_data={"mime_type": "image/jpeg", "data": image_bytes})
-    #     ]
-    # )
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
 
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(model="gemini-2.5-flash", contents=messages)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        ),
+    )
 
     if response.usage_metadata is None:
         raise RuntimeError("Failed API request")
@@ -45,6 +46,11 @@ def main():
 
     print("Response: ")
     print(response.text)
+
+    if response.function_calls is not None:
+        for function_call in response.function_calls:
+            print(f"Calling function: {function_call.name}({function_call.args})")
+
 
 if __name__ == "__main__":
     main()
