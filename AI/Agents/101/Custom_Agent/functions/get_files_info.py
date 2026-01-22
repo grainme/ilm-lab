@@ -12,23 +12,21 @@ def get_files_info(working_directory, directory="."):
     working_dir_abs = os.path.abspath(working_directory)
     target_dir = os.path.normpath(os.path.join(working_dir_abs, directory))
 
-    valid_target_dir = (
-        os.path.commonpath([working_dir_abs, target_dir]) == working_dir_abs
-    )
-    if not valid_target_dir:
+    if os.path.commonpath([working_dir_abs, target_dir]) != working_dir_abs:
         return f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
 
     try:
-        print(
-            f"Result for {'current' if working_directory == '.' else working_directory} directory:"
-        )
+        results = []
         for f in os.listdir(target_dir):
             f_path = os.path.join(target_dir, f)
             file_sz = os.path.getsize(f_path)
             is_dir = os.path.isdir(f_path)
-            return f"- {f}: file_size={file_sz} bytes, is_dir={is_dir}"
+            results.append(f"- {f}: file_size={file_sz} bytes, is_dir={is_dir}")
+
+        return "\n".join(results)
+
     except Exception as e:
-        return "Error: ", e
+        return f"Error: {e}"
 
 
 schema_get_files_info = types.FunctionDeclaration(
