@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/google/uuid"
 	"github.com/grainme/movie-api/internal/domain"
 )
 
@@ -8,10 +9,10 @@ import (
 // regardles the data source (cache, files, Db, in-memory...)
 type MovieRepository interface {
 	GetAllMovies() []*domain.Movie
-	// GetMovieById(id uuid.UUID) (*domain.Movie, error)
-	// AddMovie(movie *domain.Movie) (*domain.Movie, error)
-	// UpdateMovieById(id uuid.UUID, newRating string) (*domain.Movie, error)
-	// DeleteMovieById(id uuid.UUID) error
+	GetMovieById(id uuid.UUID) (*domain.Movie, error)
+	AddMovie(movie *domain.Movie) (*domain.Movie, error)
+	UpdateMovieById(id uuid.UUID, newRating int) (*domain.Movie, error)
+	DeleteMovieById(id uuid.UUID) error
 }
 
 /*

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -14,25 +15,23 @@ import (
 
 func main() {
 	movies := []*domain.Movie{
-		&domain.Movie{
-			Id:     uuid.New(),
-			Title:  "BadMovie1",
-			Rating: 2,
-		},
-		&domain.Movie{
-			Id:     uuid.New(),
-			Title:  "BadMovie2",
-			Rating: 5,
-		},
+		{Id: uuid.New(), Title: "BadMovie1", Rating: 2},
+		{Id: uuid.New(), Title: "BadMovie2", Rating: 5},
 	}
 
 	movieRepo := memory.NewMemoryMovieRepository(movies)
 	movieService := service.NewMovieService(movieRepo)
 	movieHandler := handlers.NewMovieHandler(movieService)
+
 	r := chi.NewRouter()
-
 	r.Use(middleware.Logger)
-	r.Get("/", movieHandler.GetAllMovies)
+	r.Get("/movies", movieHandler.GetAllMovies)
+	r.Get("/movies/{id}", movieHandler.GetMovieById)
+	r.Post("/movies", movieHandler.AddMovie)
+	r.Put("/movies/{id}", movieHandler.UpdateMovieById)
+	r.Delete("/movies/{id}", movieHandler.DeleteById)
 
-	http.ListenAndServe(":3000", r)
+	if err := http.ListenAndServe(":3000", r); err != nil {
+		log.Fatalf("Server failed to start: %v", err)
+	}
 }
