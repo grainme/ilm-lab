@@ -1,4 +1,4 @@
-# CI/CD – Learning Notes
+# CI – Learning Notes
 
 ## Questions & Answers
 
