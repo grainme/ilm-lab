@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/grainme/movie-api/internal/domain"
 	"github.com/grainme/movie-api/internal/repository"
@@ -16,37 +18,41 @@ func NewMovieService(repo repository.MovieRepository) *MovieService {
 	}
 }
 
-func (s *MovieService) GetAllMovies() []*domain.Movie {
+func (s *MovieService) GetAllMovies(ctx context.Context) []*domain.Movie {
 	// should we have any other logic (validation...)?
-	movies := s.movieRepo.GetAllMovies()
+	movies := s.movieRepo.GetAllMovies(ctx)
 	return movies
 }
 
-func (s *MovieService) GetMovieById(id uuid.UUID) (*domain.Movie, error) {
-	movie, err := s.movieRepo.GetMovieById(id)
+func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
+	movie, err := s.movieRepo.GetMovieById(ctx, id)
 	return movie, err
 }
 
-func (s *MovieService) AddMovie(movie *domain.Movie) (*domain.Movie, error) {
+func (s *MovieService) AddMovie(ctx context.Context, movie *domain.Movie) (*domain.Movie, error) {
 	if movie == nil {
 		return nil, domain.ErrInvalidMovie
 	}
 	if movie.Rating < 0 || movie.Rating > 10 {
 		return nil, domain.ErrInvalidRating
 	}
-	movie, err := s.movieRepo.AddMovie(movie)
+	if movie.Title == "" || len(movie.Title) > 40 {
+		return nil, domain.ErrInvalidMovie
+	}
+
+	movie, err := s.movieRepo.AddMovie(ctx, movie)
 	return movie, err
 }
 
-func (s *MovieService) UpdateMovieById(id uuid.UUID, newRating int) (*domain.Movie, error) {
+func (s *MovieService) UpdateMovieById(ctx context.Context, id uuid.UUID, newRating int) (*domain.Movie, error) {
 	if newRating < 0 || newRating > 10 {
 		return nil, domain.ErrInvalidRating
 	}
-	movie, err := s.movieRepo.UpdateMovieById(id, newRating)
+	movie, err := s.movieRepo.UpdateMovieById(ctx, id, newRating)
 	return movie, err
 }
 
-func (s *MovieService) DeleteMovieById(id uuid.UUID) error {
-	err := s.movieRepo.DeleteMovieById(id)
+func (s *MovieService) DeleteMovieById(ctx context.Context, id uuid.UUID) error {
+	err := s.movieRepo.DeleteMovieById(ctx, id)
 	return err
 }

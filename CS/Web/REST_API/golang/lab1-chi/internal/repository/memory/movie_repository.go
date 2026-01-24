@@ -4,6 +4,7 @@
 package memory
 
 import (
+	"context"
 	"slices"
 	"sync"
 
@@ -23,7 +24,7 @@ func NewMemoryMovieRepository(movies []*domain.Movie) *MemoryMovieRepository {
 	}
 }
 
-func (r *MemoryMovieRepository) GetAllMovies() []*domain.Movie {
+func (r *MemoryMovieRepository) GetAllMovies(ctx context.Context) []*domain.Movie {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -38,7 +39,7 @@ func (r *MemoryMovieRepository) GetAllMovies() []*domain.Movie {
 	return result
 }
 
-func (r *MemoryMovieRepository) GetMovieById(id uuid.UUID) (*domain.Movie, error) {
+func (r *MemoryMovieRepository) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -52,29 +53,33 @@ func (r *MemoryMovieRepository) GetMovieById(id uuid.UUID) (*domain.Movie, error
 	return nil, domain.ErrMovieNotFound
 }
 
-func (r *MemoryMovieRepository) AddMovie(movie *domain.Movie) (*domain.Movie, error) {
+func (r *MemoryMovieRepository) AddMovie(ctx context.Context, movie *domain.Movie) (*domain.Movie, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.movies = append(r.movies, movie)
-	return movie, nil
+
+	movieCopy := *movie
+	return &movieCopy, nil
 }
 
-func (r *MemoryMovieRepository) UpdateMovieById(id uuid.UUID, newRating int) (*domain.Movie, error) {
+func (r *MemoryMovieRepository) UpdateMovieById(ctx context.Context, id uuid.UUID, newRating int) (*domain.Movie, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for _, mv := range r.movies {
 		if mv.Id == id {
 			mv.Rating = newRating
-			return mv, nil
+			// return copy to avoid data race
+			movieCopy := *mv
+			return &movieCopy, nil
 		}
 	}
 
 	return nil, domain.ErrMovieNotFound
 }
 
-func (r *MemoryMovieRepository) DeleteMovieById(id uuid.UUID) error {
+func (r *MemoryMovieRepository) DeleteMovieById(ctx context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

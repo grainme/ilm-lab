@@ -22,48 +22,23 @@ func NewMovieHandler(service *service.MovieService) *MovieHandler {
 }
 
 func (h *MovieHandler) GetAllMovies(w http.ResponseWriter, r *http.Request) {
-	movies := h.movieService.GetAllMovies()
-
-	data, err := json.Marshal(movies)
-	if err != nil {
-		http.Error(w, "Marshalling failed", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	movies := h.movieService.GetAllMovies(r.Context())
+	respondJSON(w, http.StatusOK, movies)
 }
 
 func (h *MovieHandler) GetMovieById(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	uuidFromId, err := uuid.Parse(id)
+	uuidFromId, err := extractIdAndParse(w, r)
 	if err != nil {
-		http.Error(w, "UUID parsing failed", http.StatusInternalServerError)
-	}
-
-	movie, err := h.movieService.GetMovieById(uuidFromId)
-	if err != nil {
-		if errors.Is(err, domain.ErrMovieNotFound) {
-			w.Header().Add("Content-Type", "application/text")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Movie not found"))
-			return
-		} else {
-			http.Error(w, "Service failed", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	data, err := json.Marshal(movie)
-	if err != nil {
-		http.Error(w, "Marshalling failed", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	movie, err := h.movieService.GetMovieById(r.Context(), uuidFromId)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, movie)
 }
 
 func (h *MovieHandler) AddMovie(w http.ResponseWriter, r *http.Request) {
@@ -73,33 +48,19 @@ func (h *MovieHandler) AddMovie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movie, err := h.movieService.AddMovie(&movieData)
+	movie, err := h.movieService.AddMovie(r.Context(), &movieData)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidMovie) {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		} else {
-			http.Error(w, "Service failed", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	data, err := json.Marshal(movie)
-	if err != nil {
-		http.Error(w, "Marshalling failed", http.StatusInternalServerError)
+		respondError(w, err)
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(data)
+	respondJSON(w, http.StatusCreated, movie)
 }
 
 func (h *MovieHandler) UpdateMovieById(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	uuidFromId, err := uuid.Parse(id)
+	uuidFromId, err := extractIdAndParse(w, r)
 	if err != nil {
-		http.Error(w, "UUID parsing failed", http.StatusInternalServerError)
+		return
 	}
 
 	var payload struct {
@@ -110,49 +71,59 @@ func (h *MovieHandler) UpdateMovieById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movie, err := h.movieService.UpdateMovieById(uuidFromId, payload.Rating)
+	movie, err := h.movieService.UpdateMovieById(r.Context(), uuidFromId, payload.Rating)
 	if err != nil {
-		if errors.Is(err, domain.ErrMovieNotFound) {
-			w.Header().Add("Content-Type", "application/text")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Movie not found"))
-			return
-		} else {
-			http.Error(w, "Service failed", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	data, err := json.Marshal(movie)
-	if err != nil {
-		http.Error(w, "Marshalling failed", http.StatusInternalServerError)
+		respondError(w, err)
 		return
 	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	respondJSON(w, http.StatusOK, movie)
 }
 
 func (h *MovieHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
+	uuidFromId, err := extractIdAndParse(w, r)
+	if err != nil {
+		return
+	}
+
+	err = h.movieService.DeleteMovieById(r.Context(), uuidFromId)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// ------ private helpers ------
+
+func respondJSON(w http.ResponseWriter, status int, payload any) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to marshal json response"))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(data)
+}
+
+func respondError(w http.ResponseWriter, err error) {
+	if errors.Is(err, domain.ErrMovieNotFound) {
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": "movie not found"})
+		return
+	} else {
+		http.Error(w, "movie service failed", http.StatusInternalServerError)
+		return
+	}
+}
+
+func extractIdAndParse(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {
 	id := chi.URLParam(r, "id")
 	uuidFromId, err := uuid.Parse(id)
 	if err != nil {
-		http.Error(w, "UUID parsing failed", http.StatusInternalServerError)
+		http.Error(w, "UUID parsing failed", http.StatusBadRequest)
+		return uuid.UUID{}, err
 	}
 
-	err = h.movieService.DeleteMovieById(uuidFromId)
-	if err != nil {
-		if errors.Is(err, domain.ErrMovieNotFound) {
-			w.Header().Add("Content-Type", "application/text")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Movie not found"))
-			return
-		} else {
-			http.Error(w, "Service failed", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+	return uuidFromId, nil
 }

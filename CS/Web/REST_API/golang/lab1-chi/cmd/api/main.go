@@ -25,6 +25,7 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
 	r.Get("/movies", movieHandler.GetAllMovies)
 	r.Get("/movies/{id}", movieHandler.GetMovieById)
 	r.Post("/movies", movieHandler.AddMovie)
