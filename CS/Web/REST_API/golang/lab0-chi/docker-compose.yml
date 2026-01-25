@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16.11-alpine
+    container_name: movie_db
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=movie_123
+    volumes:
+      - movie-db-data:/var/lib/postgresql/data
+
+volumes:
+  movie-db-data:
