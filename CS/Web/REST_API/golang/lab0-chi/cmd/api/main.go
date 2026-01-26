@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -32,7 +33,14 @@ func main() {
 	r.Put("/movies/{id}", movieHandler.UpdateMovieById)
 	r.Delete("/movies/{id}", movieHandler.DeleteById)
 
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		// default value
+		port = "3000"
+	}
+
+	log.Printf("Starting server on port %s", port)
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
