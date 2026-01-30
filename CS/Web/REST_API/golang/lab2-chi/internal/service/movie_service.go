@@ -33,22 +33,16 @@ func (s *MovieService) AddMovie(ctx context.Context, movie *domain.Movie) (*doma
 	if movie == nil {
 		return nil, domain.ErrInvalidMovie
 	}
-	if movie.Rating < 0 || movie.Rating > 10 {
-		return nil, domain.ErrInvalidRating
-	}
+	// this does not make sense, we should not allow to add a movie with a rating
+	// this done from the rating service
+	// if *movie.AvgRating < 0 || *movie.AvgRating > 10 {
+	// 	return nil, domain.ErrInvalidRating
+	// }
 	if movie.Title == "" || len(movie.Title) > 40 {
 		return nil, domain.ErrInvalidMovie
 	}
 
 	movie, err := s.movieRepo.AddMovie(ctx, movie)
-	return movie, err
-}
-
-func (s *MovieService) UpdateMovieById(ctx context.Context, id uuid.UUID, newRating int) (*domain.Movie, error) {
-	if newRating < 0 || newRating > 10 {
-		return nil, domain.ErrInvalidRating
-	}
-	movie, err := s.movieRepo.UpdateMovieById(ctx, id, newRating)
 	return movie, err
 }
 

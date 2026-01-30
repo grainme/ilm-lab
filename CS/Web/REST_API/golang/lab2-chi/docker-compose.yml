@@ -10,24 +10,15 @@ services:
       - movie-db-data:/var/lib/postgresql/data
 
   api:
-    # Instead of an image, we'll tell Compose to build from an image
-    # "." means look up Dockerfile in the current directory
     build: .
     container_name: movie_api
-    # Go app listens on port 8080, so we map host 8080 to container 8080
     ports:
       - 3000:3000
-    # Go app depends on the postgres database
-    # It tells Compose to start the db and wait for it to be healthy
-    # before starting the api service
     depends_on:
       - db
     environment:
-      # We need to tell our Go app how to connect to the database.
-      # Inside the Docker network, the hostname for the 'db' service is simply 'db'.
-      #
-      # Apparently i don't have this yet (maybe we would have it in lab2)
       PORT: "3000"
+      # we don't need to enable sslmode for local work
       DB_DSN: "postgres://postgres:movie_123@db:5432/postgres?sslmode=disable"
 
 volumes:
