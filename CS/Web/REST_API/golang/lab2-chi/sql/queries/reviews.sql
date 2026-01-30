@@ -2,11 +2,11 @@
 SELECT
   *
 FROM
-  REVIEWS;
+  reviews;
 
 -- name: AddReview :one
 INSERT INTO
-  REVIEWS (id, user_name, rating, comment, movie_id)
+  reviews (id, user_name, rating, comment, movie_id)
 VALUES
   ($1, $2, $3, $4, $5) RETURNING *;
 
@@ -14,6 +14,6 @@ VALUES
 SELECT
   *
 FROM
-  REVIEWS
+  reviews
 WHERE
   movie_id = $1;

@@ -50,3 +50,8 @@ func (s *MovieService) DeleteMovieById(ctx context.Context, id uuid.UUID) error 
 	err := s.movieRepo.DeleteMovieById(ctx, id)
 	return err
 }
+
+func (s *MovieService) GetMovieWithReviews(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
+	movie, err := s.movieRepo.GetMovieWithReviews(ctx, id)
+	return movie, err
+}

@@ -74,6 +74,43 @@ func (q *Queries) GetMovieById(ctx context.Context, id uuid.UUID) (Movie, error)
 	return i, err
 }
 
+const getMovieWithReviews = `-- name: GetMovieWithReviews :one
+SELECT
+  m.id, m.title, m.director, m.year,
+  AVG(r.rating) as avg_rating,
+  COUNT(r.*) as reviews_count
+FROM
+  movies m
+  LEFT JOIN reviews r ON m.id = r.movie_id
+WHERE
+  m.id = $1
+GROUP BY
+  m.id
+`
+
+type GetMovieWithReviewsRow struct {
+	ID           uuid.UUID
+	Title        string
+	Director     string
+	Year         int32
+	AvgRating    float64
+	ReviewsCount int64
+}
+
+func (q *Queries) GetMovieWithReviews(ctx context.Context, id uuid.UUID) (GetMovieWithReviewsRow, error) {
+	row := q.db.QueryRowContext(ctx, getMovieWithReviews, id)
+	var i GetMovieWithReviewsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Director,
+		&i.Year,
+		&i.AvgRating,
+		&i.ReviewsCount,
+	)
+	return i, err
+}
+
 const getMovies = `-- name: GetMovies :many
 SELECT
   id, title, director, year

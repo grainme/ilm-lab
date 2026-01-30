@@ -27,7 +27,7 @@ func (r *PostgresMovieRepository) GetAllMovies(ctx context.Context) []*domain.Mo
 
 	moviesList := make([]*domain.Movie, len(movies))
 	for idx, mv := range movies {
-		moviesList[idx] = toDomainMovie(mv)
+		moviesList[idx] = toDomainMovieFromDatabaseMovie(mv)
 	}
 
 	return moviesList
@@ -39,7 +39,7 @@ func (r *PostgresMovieRepository) GetMovieById(ctx context.Context, id uuid.UUID
 		return nil, err
 	}
 
-	return toDomainMovie(movie), nil
+	return toDomainMovieFromDatabaseMovie(movie), nil
 }
 
 func (r *PostgresMovieRepository) AddMovie(ctx context.Context, movie *domain.Movie) (*domain.Movie, error) {
@@ -53,7 +53,7 @@ func (r *PostgresMovieRepository) AddMovie(ctx context.Context, movie *domain.Mo
 		return nil, err
 	}
 
-	insertedMovie := toDomainMovie(dbMovie)
+	insertedMovie := toDomainMovieFromDatabaseMovie(dbMovie)
 	return insertedMovie, nil
 }
 
@@ -66,13 +66,35 @@ func (r *PostgresMovieRepository) DeleteMovieById(ctx context.Context, id uuid.U
 	return nil
 }
 
+func (r *PostgresMovieRepository) GetMovieWithReviews(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
+	movie, err := r.dbQueries.GetMovieWithReviews(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return toDomainMovieFromGetMovieWithReviewsRow(movie), nil
+}
+
 // Helper function (Mapper)
-func toDomainMovie(movie database.Movie) *domain.Movie {
+func toDomainMovieFromDatabaseMovie(movie database.Movie) *domain.Movie {
 	domainMovie := domain.Movie{
 		ID:       movie.ID,
 		Title:    movie.Title,
 		Director: movie.Director,
 		Year:     movie.Year,
+	}
+
+	return &domainMovie
+}
+
+func toDomainMovieFromGetMovieWithReviewsRow(movie database.GetMovieWithReviewsRow) *domain.Movie {
+	domainMovie := domain.Movie{
+		ID:            movie.ID,
+		Title:         movie.Title,
+		Director:      movie.Director,
+		Year:          movie.Year,
+		AverageRating: movie.AvgRating,
+		ReviewsCount:  movie.ReviewsCount,
 	}
 
 	return &domainMovie

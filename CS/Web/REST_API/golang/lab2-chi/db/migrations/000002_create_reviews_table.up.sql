@@ -1,6 +1,6 @@
 -- reviews table: id, movie_id (FOREIGN KEY), user_name, rating (1-10), comment
 --
-CREATE TABLE IF NOT EXISTS REVIEWS (
+CREATE TABLE IF NOT EXISTS reviews (
   id UUID PRIMARY KEY,
   user_name TEXT NOT NULL,
   rating INTEGER NOT NULL CHECK (
