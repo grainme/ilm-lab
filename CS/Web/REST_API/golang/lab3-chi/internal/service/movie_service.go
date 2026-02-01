@@ -2,19 +2,26 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/grainme/movie-api/internal/cache"
 	"github.com/grainme/movie-api/internal/domain"
 	"github.com/grainme/movie-api/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type MovieService struct {
 	movieRepo repository.MovieRepository
+	rdb       *redis.Client
 }
 
-func NewMovieService(repo repository.MovieRepository) *MovieService {
+func NewMovieService(repo repository.MovieRepository, rdb *redis.Client) *MovieService {
 	return &MovieService{
 		movieRepo: repo,
+		rdb:       rdb,
 	}
 }
 
@@ -25,7 +32,30 @@ func (s *MovieService) GetAllMovies(ctx context.Context) []*domain.Movie {
 }
 
 func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
-	movie, err := s.movieRepo.GetMovieById(ctx, id)
+	startTime := time.Now()
+	movie, err := cache.GetMovieById(ctx, *s.rdb, id)
+	if err != nil {
+		return nil, err
+	}
+	if movie == nil {
+		return nil, fmt.Errorf("movie is nil")
+	}
+
+	// cache hit
+	if movie != nil {
+		log.Printf("CACHE HIT %s: %dms\n", cache.MovieKey(movie.ID), time.Since(startTime).Milliseconds())
+		return movie, nil
+	}
+
+	log.Printf("CACHE MISS: %s\n", cache.MovieKey(movie.ID))
+	movie, err = s.movieRepo.GetMovieById(ctx, id)
+
+	// save in cache
+	if err := cache.SetMovie(ctx, s.rdb, id, *movie); err != nil {
+		log.Printf("could not cache movie: %v\n", err)
+	}
+
+	log.Printf("(Postgres) duration: %dms\n", time.Since(startTime).Milliseconds())
 	return movie, err
 }
 

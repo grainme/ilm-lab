@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -13,33 +12,17 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/grainme/movie-api/internal/cache"
 	handlers "github.com/grainme/movie-api/internal/handler"
 	"github.com/grainme/movie-api/internal/repository/postgres"
 	"github.com/grainme/movie-api/internal/service"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/redis/go-redis/v9"
 )
 
 func main() {
-	// movies := []*domain.Movie{
-	// 	{Id: uuid.New(), Title: "BadMovie1", Rating: 2},
-	// 	{Id: uuid.New(), Title: "BadMovie2", Rating: 5},
-	// }
-
 	dbDSN := os.Getenv("DB_DSN")
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		DB:       0,
-		Protocol: 2,
-	})
-	ctx := context.Background()
-
-	err := rdb.Set(ctx, "foo", 1, time.Second*4).Err()
-	if err != nil {
-		log.Fatalf("Failed to send SET command: %v", err)
-	}
-
+	// Migrations (tables creation)
 	log.Println("Running database migrations...")
 	m, err := migrate.New("file://db/migrations", dbDSN)
 	if err != nil {
@@ -51,6 +34,7 @@ func main() {
 	}
 	log.Println("Database migrations completed successfully.")
 
+	// setup postgresDB
 	db, err := sql.Open("pgx", dbDSN)
 	if err != nil {
 		log.Fatalf("Unable to create connection pool: %v", err)
@@ -66,12 +50,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	movieRepo := postgres.NewPostgresMovieRepository(db)
-	movieService := service.NewMovieService(movieRepo)
-	movieHandler := handlers.NewMovieHandler(movieService)
+	// setup redis
+	rdb, err := cache.NewRedisClient("localhost:6379")
+	if err != nil {
+		log.Fatalf("Unable to connect to Redis: %v", err)
+		os.Exit(1)
+	}
+	defer rdb.Close()
 
+	movieRepo := postgres.NewPostgresMovieRepository(db)
 	reviewRepo := postgres.NewPostgresReviewRepository(db)
-	reviewService := service.NewReviewService(reviewRepo)
+
+	movieService := service.NewMovieService(movieRepo, rdb)
+	reviewService := service.NewReviewService(reviewRepo, rdb)
+
+	movieHandler := handlers.NewMovieHandler(movieService)
 	reviewHandler := handlers.NewReviewHandler(reviewService)
 
 	r := chi.NewRouter()

@@ -6,15 +6,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/grainme/movie-api/internal/domain"
 	"github.com/grainme/movie-api/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type ReviewService struct {
 	reviewRepo repository.ReviewRepository
+	rdb        *redis.Client
 }
 
-func NewReviewService(repo repository.ReviewRepository) *ReviewService {
+func NewReviewService(repo repository.ReviewRepository, rdb *redis.Client) *ReviewService {
 	return &ReviewService{
 		reviewRepo: repo,
+		rdb:        rdb,
 	}
 }
 
