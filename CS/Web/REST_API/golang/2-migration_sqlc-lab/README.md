@@ -21,7 +21,7 @@
 *   **N+1 Query Problem:** Performance anti-pattern where 1 query fetches a list, and then N subsequent queries run in a loop to get related data. Solved by using a `JOIN` to fetch all required data in a single, efficient query.
 *   **Indexing:** Creates a special lookup table for a column (e.g., `reviews.movie_id`) to make `WHERE` clauses and `JOIN` operations dramatically faster.
 
-### 3. Docker for Development
+### 4. Docker for Development
 
 *   **Multi-Stage Builds:** A `Dockerfile` can have multiple `FROM` statements. This is used to create a small final image containing only the compiled binary and necessary assets, discarding the larger build environment.
 *   **Cache Invalidation:** `docker compose up` uses a cached image by default. `docker compose up --build` is used to force a rebuild after changing source code or the `Dockerfile`.
