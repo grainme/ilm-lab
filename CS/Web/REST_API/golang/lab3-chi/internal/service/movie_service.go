@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -35,20 +34,36 @@ func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.
 	startTime := time.Now()
 	movie, err := cache.GetMovieById(ctx, *s.rdb, id)
 	if err != nil {
-		return nil, err
-	}
-	if movie == nil {
-		return nil, fmt.Errorf("movie is nil")
+		log.Printf("failed to get movie from cache: %v", err)
 	}
 
 	// cache hit
 	if movie != nil {
-		log.Printf("CACHE HIT %s: %dms\n", cache.MovieKey(movie.ID), time.Since(startTime).Milliseconds())
+		// view counter (write-behind strategy)
+		go func() {
+			count, err := cache.IncrementViewCount(context.Background(), s.rdb, id)
+			if err != nil {
+				log.Printf("failed to increment view count for movie %s: %v", id, err)
+				return
+			}
+
+			if count%100 == 0 {
+				// Every 100 views, sync to DB
+				// We don't have views track on the DB. but I got the idea of write-behind
+				// s.repo.UpdateViewCount(context.Background(), id, count)
+				log.Printf("syncing view count to DB: %d", count)
+			}
+		}()
+
+		log.Printf("CACHE HIT %s: %dms\n", cache.MovieKey(id), time.Since(startTime).Milliseconds())
 		return movie, nil
 	}
 
-	log.Printf("CACHE MISS: %s\n", cache.MovieKey(movie.ID))
+	log.Printf("CACHE MISS: %s\n", cache.MovieKey(id))
 	movie, err = s.movieRepo.GetMovieById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 
 	// save in cache
 	if err := cache.SetMovie(ctx, s.rdb, id, *movie); err != nil {
@@ -63,11 +78,7 @@ func (s *MovieService) AddMovie(ctx context.Context, movie *domain.Movie) (*doma
 	if movie == nil {
 		return nil, domain.ErrInvalidMovie
 	}
-	// this does not make sense, we should not allow to add a movie with a rating
-	// this done from the rating service
-	// if *movie.AvgRating < 0 || *movie.AvgRating > 10 {
-	// 	return nil, domain.ErrInvalidRating
-	// }
+
 	if movie.Title == "" || len(movie.Title) > 40 {
 		return nil, domain.ErrInvalidMovie
 	}
@@ -76,8 +87,27 @@ func (s *MovieService) AddMovie(ctx context.Context, movie *domain.Movie) (*doma
 	return movie, err
 }
 
+func (s *MovieService) UpdateMovieTitleById(ctx context.Context, id uuid.UUID, title string) error {
+	if title == "" || len(title) > 40 {
+		return domain.ErrInvalidMovie
+	}
+
+	err := s.movieRepo.UpdateMovieTitleById(ctx, id, title)
+	if err != nil {
+		return err
+	}
+
+	err = cache.DelMovie(ctx, s.rdb, id)
+	return err
+}
+
 func (s *MovieService) DeleteMovieById(ctx context.Context, id uuid.UUID) error {
 	err := s.movieRepo.DeleteMovieById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = cache.DelMovie(ctx, s.rdb, id)
 	return err
 }
 

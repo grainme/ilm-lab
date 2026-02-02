@@ -18,6 +18,13 @@ INSERT INTO
 VALUES
   ($1, $2, $3, $4) RETURNING *;
 
+-- name: UpdateMovieTitleById :exec
+UPDATE movies
+SET
+  title = $2
+WHERE
+  id = $1;
+
 -- name: DeleteMovieById :exec
 DELETE FROM movies
 WHERE

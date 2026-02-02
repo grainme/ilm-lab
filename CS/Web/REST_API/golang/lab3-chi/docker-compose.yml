@@ -27,6 +27,7 @@ services:
       PORT: "3000"
       # we don't need to enable sslmode for local work
       DB_DSN: "postgres://postgres:movie_123@db:5432/postgres?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
 
 volumes:
   movie-db-data:

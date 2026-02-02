@@ -57,6 +57,15 @@ func (r *PostgresMovieRepository) AddMovie(ctx context.Context, movie *domain.Mo
 	return insertedMovie, nil
 }
 
+func (r *PostgresMovieRepository) UpdateMovieTitleById(ctx context.Context, id uuid.UUID, title string) error {
+	err := r.dbQueries.UpdateMovieTitleById(ctx, database.UpdateMovieTitleByIdParams{
+		ID:    id,
+		Title: title,
+	})
+
+	return err
+}
+
 func (r *PostgresMovieRepository) DeleteMovieById(ctx context.Context, id uuid.UUID) error {
 	err := r.dbQueries.DeleteMovieById(ctx, id)
 	if err != nil {

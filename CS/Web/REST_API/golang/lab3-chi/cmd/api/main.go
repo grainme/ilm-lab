@@ -21,6 +21,7 @@ import (
 
 func main() {
 	dbDSN := os.Getenv("DB_DSN")
+	redisAddr := os.Getenv("REDIS_ADDR")
 
 	// Migrations (tables creation)
 	log.Println("Running database migrations...")
@@ -51,7 +52,7 @@ func main() {
 	}
 
 	// setup redis
-	rdb, err := cache.NewRedisClient("localhost:6379")
+	rdb, err := cache.NewRedisClient(redisAddr)
 	if err != nil {
 		log.Fatalf("Unable to connect to Redis: %v", err)
 		os.Exit(1)
@@ -74,6 +75,7 @@ func main() {
 	r.Get("/movies", movieHandler.GetAllMovies)
 	r.Get("/movies/{id}", movieHandler.GetMovieById)
 	r.Post("/movies", movieHandler.AddMovie)
+	r.Put("/movies/{id}", movieHandler.UpdateMovieTitleById)
 	r.Delete("/movies/{id}", movieHandler.DeleteById)
 	r.Get("/movies/{id}/reviews", movieHandler.GetMovieWithReviews)
 	// reviews routes

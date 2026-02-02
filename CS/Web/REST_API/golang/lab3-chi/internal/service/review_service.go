@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
+	"github.com/grainme/movie-api/internal/cache"
 	"github.com/grainme/movie-api/internal/domain"
 	"github.com/grainme/movie-api/internal/repository"
 	"github.com/redis/go-redis/v9"
@@ -43,6 +45,13 @@ func (s *ReviewService) AddReview(ctx context.Context, review *domain.Review) (d
 	insertedReview, err := s.reviewRepo.AddReview(ctx, review)
 	if err != nil {
 		return domain.Review{}, err
+	}
+
+	// invalidate the movie cache since its data (avg_rating) has changed
+	err = cache.DelMovie(ctx, s.rdb, review.MovieID)
+	if err != nil {
+		// Log the error but don't crash. The cache will expire on its own.
+		log.Printf("failed to invalidate movie cache for movie %s: %v", review.MovieID, err)
 	}
 
 	return insertedReview, nil

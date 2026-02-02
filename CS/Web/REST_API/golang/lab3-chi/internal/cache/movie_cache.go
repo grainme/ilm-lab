@@ -39,6 +39,16 @@ func SetMovie(ctx context.Context, rdb *redis.Client, movieId uuid.UUID, movieVa
 		return err
 	}
 
-	err = rdb.Set(ctx, movieKey, data, time.Minute*10).Err()
-	return err
+	return rdb.Set(ctx, movieKey, data, time.Minute*10).Err()
+}
+
+func DelMovie(ctx context.Context, rdb *redis.Client, movieId uuid.UUID) error {
+	movieKey := MovieKey(movieId)
+	return rdb.Del(ctx, movieKey).Err()
+}
+
+// atomic increment
+func IncrementViewCount(ctx context.Context, rdb *redis.Client, id uuid.UUID) (int64, error) {
+	key := ViewsMovieKey(id)
+	return rdb.Incr(ctx, key).Result()
 }

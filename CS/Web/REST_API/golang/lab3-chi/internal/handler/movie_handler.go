@@ -81,6 +81,26 @@ func (h *MovieHandler) AddMovie(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, movie)
 }
 
+func (h *MovieHandler) UpdateMovieTitleById(w http.ResponseWriter, r *http.Request) {
+	uuidFromId, err := extractIdAndParse(w, r)
+	if err != nil {
+		return
+	}
+
+	var movieData domain.Movie
+	if err := json.NewDecoder(r.Body).Decode(&movieData); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+
+	err = h.movieService.UpdateMovieTitleById(r.Context(), uuidFromId, movieData.Title)
+	if err != nil {
+		respondError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *MovieHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 	uuidFromId, err := extractIdAndParse(w, r)
 	if err != nil {

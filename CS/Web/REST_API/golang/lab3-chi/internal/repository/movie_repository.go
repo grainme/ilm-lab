@@ -13,6 +13,7 @@ type MovieRepository interface {
 	GetAllMovies(ctx context.Context) []*domain.Movie
 	GetMovieById(ctx context.Context, id uuid.UUID) (*domain.Movie, error)
 	AddMovie(ctx context.Context, movie *domain.Movie) (*domain.Movie, error)
+	UpdateMovieTitleById(ctx context.Context, id uuid.UUID, title string) error
 	DeleteMovieById(ctx context.Context, id uuid.UUID) error
 	GetMovieWithReviews(ctx context.Context, id uuid.UUID) (*domain.Movie, error)
 }

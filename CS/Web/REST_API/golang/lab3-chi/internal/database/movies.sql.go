@@ -145,3 +145,21 @@ func (q *Queries) GetMovies(ctx context.Context) ([]Movie, error) {
 	}
 	return items, nil
 }
+
+const updateMovieTitleById = `-- name: UpdateMovieTitleById :exec
+UPDATE movies
+SET
+  title = $2
+WHERE
+  id = $1
+`
+
+type UpdateMovieTitleByIdParams struct {
+	ID    uuid.UUID
+	Title string
+}
+
+func (q *Queries) UpdateMovieTitleById(ctx context.Context, arg UpdateMovieTitleByIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateMovieTitleById, arg.ID, arg.Title)
+	return err
+}
