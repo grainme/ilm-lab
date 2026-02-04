@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS movies (
+  id UUID PRIMARY KEY,
+  title TEXT NOT NULL,
+  director TEXT NOT NULL,
+  year INTEGER NOT NULL
+);
