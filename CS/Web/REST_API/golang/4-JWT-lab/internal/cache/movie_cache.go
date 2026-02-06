@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func GetMovieById(ctx context.Context, rdb redis.Client, id uuid.UUID) (*domain.Movie, error) {
+func GetMovieById(ctx context.Context, rdb *redis.Client, id uuid.UUID) (*domain.Movie, error) {
 	key := MovieKey(id)
 	val, err := rdb.Get(ctx, key).Result()
 

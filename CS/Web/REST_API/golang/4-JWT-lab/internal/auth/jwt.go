@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/grainme/movie-api/internal/domain"
 )
 
 type Claims struct {
@@ -14,14 +15,24 @@ type Claims struct {
 	Role string `json:"role"`
 }
 
-func GenerateAccessToken(userId uuid.UUID, role string) (string, error) {
+func GenerateRefreshToken() uuid.UUID {
+	// for now, this is just a wrapper around
+	// uuid.new() - better naming
+	return uuid.New()
+}
+
+// should I use:
+// - user domain.User as param
+// - userId UUID, role string as params
+// code design question? - it does not matter? - don't give a function more than it needs?
+func GenerateAccessToken(userId uuid.UUID, role domain.Role) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userId.String(), // who the token is about?
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		Role: role,
+		Role: string(role),
 	}
 	secretKey := os.Getenv("JWT_SECRET")
 

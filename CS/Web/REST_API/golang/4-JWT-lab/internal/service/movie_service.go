@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/grainme/movie-api/internal/cache"
@@ -31,8 +30,7 @@ func (s *MovieService) GetAllMovies(ctx context.Context) []*domain.Movie {
 }
 
 func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.Movie, error) {
-	startTime := time.Now()
-	movie, err := cache.GetMovieById(ctx, *s.rdb, id)
+	movie, err := cache.GetMovieById(ctx, s.rdb, id)
 	if err != nil {
 		log.Printf("failed to get movie from cache: %v", err)
 	}
@@ -55,7 +53,6 @@ func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.
 			}
 		}()
 
-		log.Printf("CACHE HIT %s: %dms\n", cache.MovieKey(id), time.Since(startTime).Milliseconds())
 		return movie, nil
 	}
 
@@ -70,7 +67,6 @@ func (s *MovieService) GetMovieById(ctx context.Context, id uuid.UUID) (*domain.
 		log.Printf("could not cache movie: %v\n", err)
 	}
 
-	log.Printf("(Postgres) duration: %dms\n", time.Since(startTime).Milliseconds())
 	return movie, err
 }
 

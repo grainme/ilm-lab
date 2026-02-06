@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/grainme/movie-api/internal/cache"
 	handlers "github.com/grainme/movie-api/internal/handler"
+	"github.com/grainme/movie-api/internal/middleware"
 	"github.com/grainme/movie-api/internal/repository/postgres"
 	"github.com/grainme/movie-api/internal/service"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -71,29 +72,36 @@ func main() {
 
 	movieService := service.NewMovieService(movieRepo, rdb)
 	reviewService := service.NewReviewService(reviewRepo, rdb)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, rdb)
 
 	movieHandler := handlers.NewMovieHandler(movieService)
 	reviewHandler := handlers.NewReviewHandler(reviewService)
 	userHandler := handlers.NewUserHandler(userService)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(chimw.Logger)
 
 	// movie routes
 	r.Get("/movies", movieHandler.GetAllMovies)
 	r.Get("/movies/{id}", movieHandler.GetMovieById)
-	r.Post("/movies", movieHandler.AddMovie)
-	r.Put("/movies/{id}", movieHandler.UpdateMovieTitleById)
-	r.Delete("/movies/{id}", movieHandler.DeleteById)
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Authenticate)
+		r.Post("/movies", movieHandler.AddMovie)
+		r.Put("/movies/{id}", movieHandler.UpdateMovieTitleById)
+		r.With(middleware.Authorize).Delete("/movies/{id}", movieHandler.DeleteById)
+	})
 	r.Get("/movies/{id}/reviews", movieHandler.GetMovieWithReviews)
+
 	// reviews routes
 	r.Get("/reviews", reviewHandler.GetAllReviews)
 	r.Post("/reviews", reviewHandler.AddReview)
 	r.Get("/reviews/{id}", reviewHandler.GetAllReviewsByMovieId)
-	// user routes
+
+	// auth routes
 	r.Post("/auth/login", userHandler.Login)
 	r.Post("/auth/register", userHandler.Register)
+	r.Post("/auth/refresh", userHandler.RefreshToken)
+	r.Post("/auth/logout", userHandler.Logout)
 
 	port := os.Getenv("PORT")
 	if port == "" {

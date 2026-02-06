@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	moviePrefix      = "movie:"
-	viewsMoviePrefix = "views:movie:"
+	moviePrefix        = "movie:"
+	viewsMoviePrefix   = "views:movie:"
+	refreshTokenPrefix = "refresh_token:"
 )
 
 func MovieKey(id uuid.UUID) string {
@@ -17,4 +18,8 @@ func MovieKey(id uuid.UUID) string {
 
 func ViewsMovieKey(id uuid.UUID) string {
 	return fmt.Sprintf("%s%s", viewsMoviePrefix, id.String())
+}
+
+func RefreshTokenKey(id uuid.UUID) string {
+	return fmt.Sprintf("%s%s", refreshTokenPrefix, id.String())
 }

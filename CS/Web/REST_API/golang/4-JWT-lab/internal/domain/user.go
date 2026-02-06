@@ -19,9 +19,10 @@ type CreateUserRequest struct {
 }
 
 type UserResponse struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Role     Role      `json:"role"`
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 type User struct {
